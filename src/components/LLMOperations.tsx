@@ -7,11 +7,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { summarizeText, askQuestion, getChunkingInfo } from '@/lib/llm';
 import { loadLLMConfig, hasValidAPIKey } from '@/lib/storage';
-import type { SummaryLength, LLMConfig } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { QAHistory } from '@/components/QAHistory';
+import { MaximizeWrapper } from '@/components/MaximizeWrapper';
+import type { SummaryLength, QARecord } from '@/lib/types';
 
 interface LLMOperationsProps {
   extractedText: string;
+  qaHistory: QARecord[];
   onSummaryComplete?: (summary: string) => void;
   onQAComplete?: (question: string, answer: string) => void;
 }
@@ -19,10 +21,13 @@ interface LLMOperationsProps {
 const DEMO_QUESTIONS = [
   '这篇文档的核心结论是什么？',
   '列出关键概念及定义',
-  '作者的流程/步骤有哪些？',
+  '理论的框架条目或者实验的流程/步骤有哪些？',
+  '可能的应用有哪些',
+  '有哪些思想启发',
+  '可能的扩展有哪些',
 ];
 
-export function LLMOperations({ extractedText, onSummaryComplete, onQAComplete }: LLMOperationsProps) {
+export function LLMOperations({ extractedText, qaHistory, onSummaryComplete, onQAComplete }: LLMOperationsProps) {
   const { toast } = useToast();
   
   const [summaryLength, setSummaryLength] = useState<SummaryLength>('medium');
@@ -170,163 +175,170 @@ export function LLMOperations({ extractedText, onSummaryComplete, onQAComplete }
       )}
 
       {/* Summarize Section */}
-      <Card variant="elevated">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-primary" />
-            文档总结
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">总结长度：</span>
-            {(['short', 'medium', 'long'] as SummaryLength[]).map((len) => (
-              <Button
-                key={len}
-                variant={summaryLength === len ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSummaryLength(len)}
-                disabled={isSummarizing}
-              >
-                {len === 'short' ? '简短' : len === 'medium' ? '适中' : '详细'}
-              </Button>
-            ))}
-          </div>
-          
-          <Button
-            onClick={handleSummarize}
-            disabled={isSummarizing}
-            className="w-full gap-2"
-            variant="hero"
-            size="lg"
-          >
-            {isSummarizing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {chunkProgress || '生成总结中...'}
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                生成总结
-              </>
-            )}
-          </Button>
-
-          {summary && (
-            <div className="rounded-lg bg-success/5 border border-success/20 p-4">
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <h4 className="font-semibold text-success">总结结果</h4>
+      <MaximizeWrapper title="文档总结">
+        <Card variant="elevated">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+              文档总结
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">总结长度：</span>
+              {(['short', 'medium', 'long'] as SummaryLength[]).map((len) => (
                 <Button
-                  variant="ghost"
+                  key={len}
+                  variant={summaryLength === len ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => copyToClipboard(summary, 'summary')}
-                  className="h-8 gap-1.5"
+                  onClick={() => setSummaryLength(len)}
+                  disabled={isSummarizing}
                 >
-                  {copiedSummary ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      已复制
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      复制
-                    </>
-                  )}
+                  {len === 'short' ? '简短' : len === 'medium' ? '适中' : '详细'}
                 </Button>
-              </div>
-              <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-                {summary}
-              </div>
+              ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+            
+            <Button
+              onClick={handleSummarize}
+              disabled={isSummarizing}
+              className="w-full gap-2"
+              variant="hero"
+              size="lg"
+            >
+              {isSummarizing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {chunkProgress || '生成总结中...'}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  生成总结
+                </>
+              )}
+            </Button>
+
+            {summary && (
+              <div className="rounded-lg bg-success/5 border border-success/20 p-4">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <h4 className="font-semibold text-success">总结结果</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(summary, 'summary')}
+                    className="h-8 gap-1.5"
+                  >
+                    {copiedSummary ? (
+                      <>
+                        <Check className="h-3.5 w-3.5" />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        复制
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+                  {summary}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </MaximizeWrapper>
 
       {/* Q&A Section */}
-      <Card variant="elevated">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MessageCircle className="h-5 w-5 text-primary" />
-            文档问答
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {DEMO_QUESTIONS.map((q, i) => (
-              <Button
-                key={i}
-                variant="soft"
-                size="sm"
-                onClick={() => handleAsk(q)}
-                disabled={isAsking}
-              >
-                {q}
-              </Button>
-            ))}
-          </div>
-          
-          <div className="flex gap-2">
-            <Textarea
-              placeholder="输入你的问题..."
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="min-h-[80px] resize-none"
-              disabled={isAsking}
-            />
-          </div>
-          
-          <Button
-            onClick={() => handleAsk()}
-            disabled={isAsking || !question.trim()}
-            className="w-full gap-2"
-            variant="hero"
-            size="lg"
-          >
-            {isAsking ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                思考中...
-              </>
-            ) : (
-              <>
-                <MessageCircle className="h-4 w-4" />
-                提问
-              </>
-            )}
-          </Button>
-
-          {answer && (
-            <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <h4 className="font-semibold text-primary">回答</h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(answer, 'answer')}
-                  className="h-8 gap-1.5"
-                >
-                  {copiedAnswer ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      已复制
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      复制
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-                {answer}
-              </div>
+      <MaximizeWrapper title="文档问答">
+        <Card variant="elevated">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MessageCircle className="h-5 w-5 text-primary" />
+                文档问答
+              </CardTitle>
+              <QAHistory history={qaHistory} />
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {DEMO_QUESTIONS.map((q, i) => (
+                <Button
+                  key={i}
+                  variant="soft"
+                  size="sm"
+                  onClick={() => handleAsk(q)}
+                  disabled={isAsking}
+                >
+                  {q}
+                </Button>
+              ))}
+            </div>
+            
+            <div className="flex gap-2">
+              <Textarea
+                placeholder="输入你的问题..."
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="min-h-[80px] resize-none"
+                disabled={isAsking}
+              />
+            </div>
+            
+            <Button
+              onClick={() => handleAsk()}
+              disabled={isAsking || !question.trim()}
+              className="w-full gap-2"
+              variant="hero"
+              size="lg"
+            >
+              {isAsking ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  思考中...
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="h-4 w-4" />
+                  提问
+                </>
+              )}
+            </Button>
+
+            {answer && (
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <h4 className="font-semibold text-primary">回答</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(answer, 'answer')}
+                    className="h-8 gap-1.5"
+                  >
+                    {copiedAnswer ? (
+                      <>
+                        <Check className="h-3.5 w-3.5" />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        复制
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+                  {answer}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </MaximizeWrapper>
     </div>
   );
 }

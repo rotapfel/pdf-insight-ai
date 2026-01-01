@@ -9,6 +9,13 @@ export interface LLMConfig {
   maxTokens: number;
 }
 
+export interface QARecord {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: Date;
+}
+
 export interface PDFDocument {
   id: string;
   filename: string;
@@ -17,7 +24,7 @@ export interface PDFDocument {
   textCharCount: number;
   pageCount: number;
   lastSummary?: string;
-  lastQA?: { question: string; answer: string };
+  qaHistory?: QARecord[];
 }
 
 export interface ExtractionProgress {
