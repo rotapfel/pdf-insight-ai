@@ -92,7 +92,7 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{doc.filename}</p>
+                        <p className="font-medium break-words">{doc.filename}</p>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
                           <span>{format(new Date(doc.uploadedAt), 'yyyy-MM-dd HH:mm')}</span>
                           <span>{doc.pageCount} 页</span>

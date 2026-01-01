@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, MessageCircle, Loader2, AlertCircle, Copy, Check, Settings } from 'lucide-react';
+import { Sparkles, MessageCircle, Loader2, AlertCircle, Copy, Check, Settings, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,12 @@ import { loadLLMConfig, hasValidAPIKey } from '@/lib/storage';
 import { QAHistory } from '@/components/QAHistory';
 import { MaximizeWrapper } from '@/components/MaximizeWrapper';
 import type { SummaryLength, QARecord } from '@/lib/types';
+import { format } from 'date-fns';
 
 interface LLMOperationsProps {
   extractedText: string;
   qaHistory: QARecord[];
+  documentName?: string;
   onSummaryComplete?: (summary: string) => void;
   onQAComplete?: (question: string, answer: string) => void;
 }
@@ -21,13 +23,13 @@ interface LLMOperationsProps {
 const DEMO_QUESTIONS = [
   '这篇文档的核心结论是什么？',
   '列出关键概念及定义',
-  '理论的框架条目或者实验的流程/步骤有哪些？',
+  '归纳主要理论框架或实验的流程/步骤',
   '可能的应用有哪些',
   '有哪些思想启发',
   '可能的扩展有哪些',
 ];
 
-export function LLMOperations({ extractedText, qaHistory, onSummaryComplete, onQAComplete }: LLMOperationsProps) {
+export function LLMOperations({ extractedText, qaHistory, documentName, onSummaryComplete, onQAComplete }: LLMOperationsProps) {
   const { toast } = useToast();
   
   const [summaryLength, setSummaryLength] = useState<SummaryLength>('medium');
@@ -131,6 +133,35 @@ export function LLMOperations({ extractedText, qaHistory, onSummaryComplete, onQ
     }
   };
 
+  const exportToMarkdown = () => {
+    let content = `# ${documentName || 'PDF文档'} - 文档分析报告\n\n`;
+    content += `导出时间: ${format(new Date(), 'yyyy-MM-dd HH:mm')}\n\n`;
+    
+    if (summary) {
+      content += `## 文档总结\n\n${summary}\n\n`;
+    }
+    
+    if (qaHistory.length > 0) {
+      content += `## 问答历史\n\n`;
+      qaHistory.forEach((record, index) => {
+        content += `### 问题 ${index + 1}\n\n`;
+        content += `**Q:** ${record.question}\n\n`;
+        content += `**A:** ${record.answer}\n\n`;
+        content += `---\n\n`;
+      });
+    }
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${documentName || 'document'}-report-${format(new Date(), 'yyyyMMdd-HHmm')}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (!hasAPIKey) {
     return (
       <Card variant="outlined" className="border-warning/50">
@@ -157,15 +188,28 @@ export function LLMOperations({ extractedText, qaHistory, onSummaryComplete, onQ
 
   return (
     <div className="space-y-6">
-      {/* Current Config Display */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>当前模型：</span>
-        <span className="rounded-md bg-muted px-2 py-0.5 font-mono">
-          {config.model}
-        </span>
-        <Link to="/settings" className="text-primary hover:underline">
-          修改
-        </Link>
+      {/* Current Config Display & Export */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>当前模型：</span>
+          <span className="rounded-md bg-muted px-2 py-0.5 font-mono">
+            {config.model}
+          </span>
+          <Link to="/settings" className="text-primary hover:underline">
+            修改
+          </Link>
+        </div>
+        {(summary || qaHistory.length > 0) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToMarkdown}
+            className="gap-1.5"
+          >
+            <Download className="h-4 w-4" />
+            导出 MD
+          </Button>
+        )}
       </div>
 
       {chunkingInfo.needsChunking && (
@@ -260,7 +304,7 @@ export function LLMOperations({ extractedText, qaHistory, onSummaryComplete, onQ
                 <MessageCircle className="h-5 w-5 text-primary" />
                 文档问答
               </CardTitle>
-              <QAHistory history={qaHistory} />
+              <QAHistory history={qaHistory} documentName={documentName} summary={summary || undefined} />
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

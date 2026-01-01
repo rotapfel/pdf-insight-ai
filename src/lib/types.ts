@@ -1,3 +1,5 @@
+export type OutputLanguage = 'zh' | 'en';
+
 export interface LLMConfig {
   provider: 'openai-compatible' | 'gemini' | 'anthropic' | 'custom';
   model: string;
@@ -7,6 +9,7 @@ export interface LLMConfig {
   timeout: number;
   temperature: number;
   maxTokens: number;
+  outputLanguage: OutputLanguage;
 }
 
 export interface QARecord {
@@ -53,6 +56,7 @@ export const DEFAULT_LLM_CONFIG: LLMConfig = {
   timeout: 60,
   temperature: 0.7,
   maxTokens: 4096,
+  outputLanguage: 'zh',
 };
 
 export const PROVIDER_PRESETS: Record<string, Partial<LLMConfig>> = {
