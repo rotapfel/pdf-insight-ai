@@ -74,9 +74,9 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="max-h-[400px] pr-1">
-          <div className="space-y-3 pr-3">
+      <CardContent className="p-0">
+        <ScrollArea className="h-[400px]">
+          <div className="space-y-3 p-4">
             {documents.map((doc) => {
               const isExpanded = expandedId === doc.id;
               const qaCount = doc.qaHistory?.length || 0;
@@ -149,7 +149,7 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                             <Sparkles className="h-3.5 w-3.5" />
                             总结
                           </h5>
-                          <ScrollArea className="max-h-[200px] pr-1">
+                          <ScrollArea className="h-[200px]">
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">
                               {doc.lastSummary}
                             </p>
@@ -163,12 +163,12 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                             <MessageCircle className="h-3.5 w-3.5" />
                             问答记录
                           </h5>
-                          <ScrollArea className="max-h-[300px] pr-1">
+                          <ScrollArea className="h-[300px]">
                             <div className="space-y-2 pr-3">
                               {doc.qaHistory.map((qa) => (
                                 <div key={qa.id} className="rounded-md bg-primary/5 border border-primary/20 p-3">
                                   <p className="text-sm font-medium mb-1">Q: {qa.question}</p>
-                                  <ScrollArea className="max-h-[150px] pr-1">
+                                  <ScrollArea className="h-[150px]">
                                     <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">A: {qa.answer}</p>
                                   </ScrollArea>
                                 </div>
