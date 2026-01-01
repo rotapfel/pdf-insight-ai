@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { summarizeText, askQuestion, getChunkingInfo } from '@/lib/llm';
 import { loadLLMConfig, hasValidAPIKey } from '@/lib/storage';
 import { QAHistory } from '@/components/QAHistory';
+import { SummaryHistory } from '@/components/SummaryHistory';
 import { MaximizeWrapper } from '@/components/MaximizeWrapper';
 import type { SummaryLength, QARecord } from '@/lib/types';
 import { format } from 'date-fns';
@@ -213,10 +214,13 @@ export function LLMOperations({ extractedText, qaHistory, documentName, onSummar
       <MaximizeWrapper title="文档总结">
         <Card variant="elevated">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-primary" />
-              文档总结
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+                文档总结
+              </CardTitle>
+              <SummaryHistory />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">

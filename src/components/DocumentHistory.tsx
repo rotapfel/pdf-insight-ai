@@ -75,8 +75,8 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="max-h-[400px]">
-          <div className="space-y-3">
+        <ScrollArea className="max-h-[400px] pr-1">
+          <div className="space-y-3 pr-3">
             {documents.map((doc) => {
               const isExpanded = expandedId === doc.id;
               const qaCount = doc.qaHistory?.length || 0;
@@ -86,9 +86,18 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                   key={doc.id}
                   className="rounded-lg border border-border bg-background p-3 transition-colors hover:bg-muted/30"
                 >
-                  {/* Document name on separate first line */}
+                  {/* Document name on separate first line - auto-adjust font and wrap */}
                   <div className="mb-2">
-                    <p className="font-medium break-words text-base">{doc.filename}</p>
+                    <p 
+                      className="font-medium leading-relaxed"
+                      style={{ 
+                        wordBreak: 'break-word', 
+                        overflowWrap: 'anywhere',
+                        fontSize: doc.filename.length > 50 ? '0.875rem' : '1rem'
+                      }}
+                    >
+                      {doc.filename}
+                    </p>
                   </div>
                   
                   <div className="flex items-start justify-between gap-3">
@@ -140,7 +149,7 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                             <Sparkles className="h-3.5 w-3.5" />
                             总结
                           </h5>
-                          <ScrollArea className="max-h-[200px]">
+                          <ScrollArea className="max-h-[200px] pr-1">
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">
                               {doc.lastSummary}
                             </p>
@@ -154,12 +163,14 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                             <MessageCircle className="h-3.5 w-3.5" />
                             问答记录
                           </h5>
-                          <ScrollArea className="max-h-[300px]">
+                          <ScrollArea className="max-h-[300px] pr-1">
                             <div className="space-y-2 pr-3">
                               {doc.qaHistory.map((qa) => (
                                 <div key={qa.id} className="rounded-md bg-primary/5 border border-primary/20 p-3">
                                   <p className="text-sm font-medium mb-1">Q: {qa.question}</p>
-                                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">A: {qa.answer}</p>
+                                  <ScrollArea className="max-h-[150px] pr-1">
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">A: {qa.answer}</p>
+                                  </ScrollArea>
                                 </div>
                               ))}
                             </div>
