@@ -1,8 +1,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import type { ExtractionProgress } from './types';
 
-// Set the worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set the worker source using unpkg CDN which has better CORS support
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export interface PDFExtractionResult {
   text: string;
