@@ -113,6 +113,16 @@ export default function Workspace() {
     const docIndex = docs.findIndex(d => d.id === currentDocId);
     if (docIndex >= 0) {
       docs[docIndex].lastSummary = summary;
+      // Add to summary history
+      const newSummaryRecord = {
+        id: crypto.randomUUID(),
+        content: summary,
+        createdAt: new Date(),
+      };
+      docs[docIndex].summaryHistory = [
+        newSummaryRecord,
+        ...(docs[docIndex].summaryHistory || []),
+      ];
       localStorage.setItem('pdf-extractor-documents', JSON.stringify(docs));
     }
   };

@@ -20,6 +20,12 @@ export interface QARecord {
   createdAt: Date;
 }
 
+export interface SummaryRecord {
+  id: string;
+  content: string;
+  createdAt: Date;
+}
+
 export interface PDFDocument {
   id: string;
   filename: string;
@@ -28,6 +34,7 @@ export interface PDFDocument {
   textCharCount: number;
   pageCount: number;
   lastSummary?: string;
+  summaryHistory?: SummaryRecord[];
   qaHistory?: QARecord[];
 }
 

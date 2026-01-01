@@ -14,7 +14,9 @@ import { format } from 'date-fns';
 
 export function SummaryHistory() {
   const [isMaximized, setIsMaximized] = useState(false);
-  const documents = loadDocuments().filter(doc => doc.lastSummary);
+  const documents = loadDocuments().filter(
+    doc => doc.summaryHistory && doc.summaryHistory.length > 0
+  );
 
   if (documents.length === 0) {
     return null;
@@ -43,8 +45,8 @@ export function SummaryHistory() {
             {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </DialogHeader>
-        <ScrollArea className={isMaximized ? "h-[calc(95vh-100px)]" : "max-h-[60vh]"}>
-          <div className="space-y-4 pr-4">
+        <ScrollArea className={isMaximized ? "h-[calc(95vh-100px)]" : "h-[60vh]"}>
+          <div className="space-y-6 pr-4">
             {documents.map((doc) => (
               <div
                 key={doc.id}
@@ -55,15 +57,27 @@ export function SummaryHistory() {
                     {doc.filename}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(doc.uploadedAt), 'yyyy-MM-dd HH:mm')}
+                    上传于 {format(new Date(doc.uploadedAt), 'yyyy-MM-dd HH:mm')}
                   </p>
                 </div>
-                <div className="rounded-md bg-success/5 border border-success/20 p-3">
-                  <ScrollArea className="max-h-[200px]">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">
-                      {doc.lastSummary}
-                    </p>
-                  </ScrollArea>
+                <div className="space-y-3">
+                  {doc.summaryHistory?.map((record, index) => (
+                    <div key={record.id} className="rounded-md bg-success/5 border border-success/20 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-success">
+                          总结 #{doc.summaryHistory!.length - index}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(record.createdAt), 'yyyy-MM-dd HH:mm')}
+                        </span>
+                      </div>
+                      <ScrollArea className="max-h-[200px]">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">
+                          {record.content}
+                        </p>
+                      </ScrollArea>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
