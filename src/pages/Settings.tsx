@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Trash2, Loader2, Check, X, Eye, EyeOff } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Trash2, Loader2, Check, X, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { loadLLMConfig, saveLLMConfig, clearLLMConfig } from '@/lib/storage';
 import { testConnection } from '@/lib/llm';
 import { PROVIDER_PRESETS, DEFAULT_LLM_CONFIG } from '@/lib/types';
-import type { LLMConfig } from '@/lib/types';
+import type { LLMConfig, OutputLanguage } from '@/lib/types';
 
 const PROVIDERS = [
   { value: 'openai-compatible', label: 'OpenAI Compatible' },
@@ -36,6 +37,7 @@ const MODEL_PRESETS: Record<string, string[]> = {
 
 export default function Settings() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [config, setConfig] = useState<LLMConfig>(DEFAULT_LLM_CONFIG);
   const [isTesting, setIsTesting] = useState(false);
@@ -102,6 +104,8 @@ export default function Settings() {
       title: '保存成功',
       description: '配置已保存到本地存储',
     });
+    // Navigate back to workspace after saving
+    navigate('/workspace');
   };
 
   const handleClear = () => {
@@ -270,6 +274,31 @@ export default function Settings() {
                 <p className="text-xs text-muted-foreground">
                   可选：添加自定义请求头，必须是有效的 JSON 格式
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Output Language */}
+          <Card variant="elevated">
+            <CardHeader>
+              <CardTitle>输出语言</CardTitle>
+              <CardDescription>设置文档总结和问答的输出语言</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>语言</Label>
+                <Select 
+                  value={config.outputLanguage} 
+                  onValueChange={(v) => handleChange('outputLanguage', v as OutputLanguage)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择输出语言" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zh">简体中文</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

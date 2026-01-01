@@ -1,26 +1,33 @@
-import { LLMConfig, LLMResponse, SummaryLength } from './types';
+import { LLMConfig, LLMResponse, SummaryLength, OutputLanguage } from './types';
 
 const CHUNK_SIZE = 50000; // ~50k characters per chunk
 const MAX_CHUNKS_FOR_QA = 3;
 
+// Language-specific prompts
+const getLanguageInstruction = (lang: OutputLanguage): string => {
+  return lang === 'zh' ? '请用中文回答。' : 'Please respond in English.';
+};
+
 // Prompts
-const SUMMARY_SYSTEM_PROMPT = `你是一个专业的文档总结助手。你只能基于用户提供的 extractedText 进行总结，绝对不能引入任何外部知识或信息。
+const getSummarySystemPrompt = (lang: OutputLanguage) => `你是一个专业的文档总结助手。你只能基于用户提供的 extractedText 进行总结，绝对不能引入任何外部知识或信息。
 
 你的输出必须包含：
 1. **核心要点**：以清晰的要点列表形式总结文档的主要内容
 2. **关键结论**：提炼文档中最重要的结论或发现
 3. **文档结构**（可选）：如果文档有明显的章节结构，简要列出
 
-如果文档内容不清晰或无法理解，请如实说明。`;
+如果文档内容不清晰或无法理解，请如实说明。
 
-const QA_SYSTEM_PROMPT = `你是一个专业的文档问答助手。你只能基于用户提供的 extractedText 回答问题，绝对不能引入任何外部知识或信息。
+${getLanguageInstruction(lang)}`;
+
+const getQASystemPrompt = (lang: OutputLanguage) => `你是一个专业的文档问答助手。你只能基于用户提供的 extractedText 回答问题，绝对不能引入任何外部知识或信息。
 
 重要规则：
 1. 如果问题的答案在文档中有明确内容，请详细回答
-2. 如果文档中没有足够信息回答这个问题，请明确回答："文档中没有足够信息回答这个问题"
+2. 如果文档中没有足够信息回答这个问题，请明确回答："${lang === 'zh' ? '文档中没有足够信息回答这个问题' : 'There is not enough information in the document to answer this question'}"
 3. 当无法回答时，请建议用户应该在文档中查找什么关键词或章节
 
-请用中文回答。`;
+${getLanguageInstruction(lang)}`;
 
 const LENGTH_INSTRUCTIONS: Record<SummaryLength, string> = {
   short: '请用100-200字进行简洁总结。',
@@ -166,10 +173,11 @@ export async function summarizeText(
 ): Promise<LLMResponse> {
   const chunks = chunkText(text);
   const needsChunking = chunks.length > 1;
+  const lang = config.outputLanguage || 'zh';
   
   if (!needsChunking) {
     const messages = [
-      { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+      { role: 'system', content: getSummarySystemPrompt(lang) },
       { role: 'user', content: `${LENGTH_INSTRUCTIONS[length]}\n\nextractedText:\n${text}` },
     ];
     
@@ -193,7 +201,7 @@ export async function summarizeText(
   
   // Final merge
   const mergeMessages = [
-    { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+    { role: 'system', content: getSummarySystemPrompt(lang) },
     { role: 'user', content: `${LENGTH_INSTRUCTIONS[length]}\n\n以下是文档各部分的摘要，请合并成一个完整的总结：\n\n${chunkSummaries.join('\n\n---\n\n')}` },
   ];
   
@@ -207,6 +215,7 @@ export async function askQuestion(
 ): Promise<LLMResponse> {
   const chunks = chunkText(text);
   let contextText = text;
+  const lang = config.outputLanguage || 'zh';
   
   if (chunks.length > 1) {
     const relevantChunks = selectRelevantChunks(chunks, question, MAX_CHUNKS_FOR_QA);
@@ -214,7 +223,7 @@ export async function askQuestion(
   }
   
   const messages = [
-    { role: 'system', content: QA_SYSTEM_PROMPT },
+    { role: 'system', content: getQASystemPrompt(lang) },
     { role: 'user', content: `问题：${question}\n\nextractedText:\n${contextText}` },
   ];
   

@@ -205,6 +205,7 @@ export default function Workspace() {
               <LLMOperations
                 extractedText={extractedText}
                 qaHistory={qaHistory}
+                documentName={file?.name}
                 onSummaryComplete={handleSummaryComplete}
                 onQAComplete={handleQAComplete}
               />
