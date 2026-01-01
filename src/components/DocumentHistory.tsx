@@ -25,6 +25,19 @@ interface DocumentHistoryProps {
 export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
   const [documents, setDocuments] = useState<PDFDocument[]>(() => loadDocuments());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedQaIds, setExpandedQaIds] = useState<Set<string>>(new Set());
+
+  const toggleQaExpanded = (qaId: string) => {
+    setExpandedQaIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(qaId)) {
+        newSet.delete(qaId);
+      } else {
+        newSet.add(qaId);
+      }
+      return newSet;
+    });
+  };
 
   const handleClearAll = () => {
     clearDocuments();
@@ -165,14 +178,33 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                           </h5>
                           <ScrollArea className="h-[300px]">
                             <div className="space-y-2 pr-3">
-                              {doc.qaHistory.map((qa) => (
-                                <div key={qa.id} className="rounded-md bg-primary/5 border border-primary/20 p-3">
-                                  <p className="text-sm font-medium mb-1">Q: {qa.question}</p>
-                                  <ScrollArea className="h-[150px]">
-                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">A: {qa.answer}</p>
-                                  </ScrollArea>
-                                </div>
-                              ))}
+                              {doc.qaHistory.map((qa) => {
+                                const isQaExpanded = expandedQaIds.has(qa.id);
+                                return (
+                                  <div key={qa.id} className="rounded-md bg-primary/5 border border-primary/20 p-3">
+                                    <div 
+                                      className="flex items-start justify-between gap-2 cursor-pointer"
+                                      onClick={() => toggleQaExpanded(qa.id)}
+                                    >
+                                      <p className="text-sm font-medium flex-1">Q: {qa.question}</p>
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0">
+                                        {isQaExpanded ? (
+                                          <ChevronUp className="h-3.5 w-3.5" />
+                                        ) : (
+                                          <ChevronDown className="h-3.5 w-3.5" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                    {isQaExpanded && (
+                                      <div className="mt-2 pt-2 border-t border-primary/10">
+                                        <ScrollArea className="h-[150px]">
+                                          <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">A: {qa.answer}</p>
+                                        </ScrollArea>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </ScrollArea>
                         </div>
