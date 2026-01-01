@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { FileText, Settings, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function Header() {
   const location = useLocation();
@@ -46,6 +47,9 @@ export function Header() {
               </Link>
             );
           })}
+          <div className="ml-2 border-l border-border pl-2">
+            <ThemeToggle />
+          </div>
         </nav>
       </div>
     </header>

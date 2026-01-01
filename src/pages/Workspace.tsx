@@ -4,12 +4,14 @@ import { Header } from '@/components/Header';
 import { PDFUpload } from '@/components/PDFUpload';
 import { TextPreview } from '@/components/TextPreview';
 import { LLMOperations } from '@/components/LLMOperations';
+import { DocumentHistory } from '@/components/DocumentHistory';
+import { MaximizeWrapper } from '@/components/MaximizeWrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { extractTextFromPDF } from '@/lib/pdf-parser';
-import { saveDocument } from '@/lib/storage';
+import { saveDocument, loadDocuments } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import type { ExtractionProgress, PDFDocument } from '@/lib/types';
+import type { ExtractionProgress, PDFDocument, QARecord } from '@/lib/types';
 
 export default function Workspace() {
   const { toast } = useToast();
@@ -25,12 +27,16 @@ export default function Workspace() {
     status: 'idle',
   });
   const [error, setError] = useState<string | null>(null);
+  const [currentDocId, setCurrentDocId] = useState<string | null>(null);
+  const [qaHistory, setQAHistory] = useState<QARecord[]>([]);
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     setFile(selectedFile);
     setExtractedText('');
     setError(null);
     setProgress({ current: 0, total: 0, status: 'idle' });
+    setCurrentDocId(null);
+    setQAHistory([]);
   }, []);
 
   const handleClearFile = useCallback(() => {
@@ -40,6 +46,8 @@ export default function Workspace() {
     setCharCount(0);
     setError(null);
     setProgress({ current: 0, total: 0, status: 'idle' });
+    setCurrentDocId(null);
+    setQAHistory([]);
   }, []);
 
   const handleExtract = async () => {
@@ -60,15 +68,18 @@ export default function Workspace() {
       setCharCount(result.charCount);
 
       // Save to history
+      const docId = crypto.randomUUID();
       const doc: PDFDocument = {
-        id: crypto.randomUUID(),
+        id: docId,
         filename: file.name,
         uploadedAt: new Date(),
         extractedText: result.text,
         textCharCount: result.charCount,
         pageCount: result.pageCount,
+        qaHistory: [],
       };
       saveDocument(doc);
+      setCurrentDocId(docId);
 
       toast({
         title: '提取成功',
@@ -89,11 +100,35 @@ export default function Workspace() {
   };
 
   const handleSummaryComplete = (summary: string) => {
-    // Could update document history here if needed
+    if (!currentDocId) return;
+    
+    const docs = loadDocuments();
+    const docIndex = docs.findIndex(d => d.id === currentDocId);
+    if (docIndex >= 0) {
+      docs[docIndex].lastSummary = summary;
+      localStorage.setItem('pdf-extractor-documents', JSON.stringify(docs));
+    }
   };
 
   const handleQAComplete = (question: string, answer: string) => {
-    // Could update document history here if needed
+    const newRecord: QARecord = {
+      id: crypto.randomUUID(),
+      question,
+      answer,
+      createdAt: new Date(),
+    };
+    
+    const newHistory = [newRecord, ...qaHistory];
+    setQAHistory(newHistory);
+
+    if (!currentDocId) return;
+    
+    const docs = loadDocuments();
+    const docIndex = docs.findIndex(d => d.id === currentDocId);
+    if (docIndex >= 0) {
+      docs[docIndex].qaHistory = newHistory;
+      localStorage.setItem('pdf-extractor-documents', JSON.stringify(docs));
+    }
   };
 
   return (
@@ -153,12 +188,14 @@ export default function Workspace() {
             )}
 
             {extractedText && (
-              <TextPreview
-                text={extractedText}
-                pageCount={pageCount}
-                charCount={charCount}
-                progress={progress}
-              />
+              <MaximizeWrapper title="提取文本预览">
+                <TextPreview
+                  text={extractedText}
+                  pageCount={pageCount}
+                  charCount={charCount}
+                  progress={progress}
+                />
+              </MaximizeWrapper>
             )}
           </div>
 
@@ -167,6 +204,7 @@ export default function Workspace() {
             {extractedText ? (
               <LLMOperations
                 extractedText={extractedText}
+                qaHistory={qaHistory}
                 onSummaryComplete={handleSummaryComplete}
                 onQAComplete={handleQAComplete}
               />
@@ -179,6 +217,11 @@ export default function Workspace() {
               </Card>
             )}
           </div>
+        </div>
+
+        {/* Document History */}
+        <div className="mt-8">
+          <DocumentHistory />
         </div>
       </main>
     </div>
