@@ -15,7 +15,12 @@ export function loadLLMConfig(): LLMConfig {
   try {
     const stored = localStorage.getItem(LLM_CONFIG_KEY);
     if (stored) {
-      return { ...DEFAULT_LLM_CONFIG, ...JSON.parse(stored) };
+      const parsed = { ...DEFAULT_LLM_CONFIG, ...JSON.parse(stored) };
+      // Ensure models array exists for backward compatibility
+      if (!parsed.models || parsed.models.length === 0) {
+        parsed.models = parsed.model ? [parsed.model] : DEFAULT_LLM_CONFIG.models;
+      }
+      return parsed;
     }
   } catch (error) {
     console.error('Failed to load LLM config');

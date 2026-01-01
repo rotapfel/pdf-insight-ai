@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Trash2, Loader2, Check, X, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Trash2, Loader2, Check, X, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -28,13 +28,6 @@ const PROVIDERS = [
   { value: 'custom', label: 'Custom OpenAI-compatible' },
 ];
 
-const MODEL_PRESETS: Record<string, string[]> = {
-  'openai-compatible': ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-  'gemini': ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'],
-  'anthropic': ['claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229'],
-  'custom': [],
-};
-
 export default function Settings() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -44,6 +37,7 @@ export default function Settings() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [headersText, setHeadersText] = useState('');
+  const [modelsText, setModelsText] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -52,16 +46,21 @@ export default function Settings() {
     if (saved.headers) {
       setHeadersText(JSON.stringify(saved.headers, null, 2));
     }
+    // Initialize models text from models array
+    setModelsText(saved.models?.join(', ') || saved.model);
   }, []);
 
   const handleProviderChange = (provider: string) => {
     const preset = PROVIDER_PRESETS[provider] || {};
+    const newModels = preset.models || [preset.model || ''];
     setConfig(prev => ({
       ...prev,
       provider: provider as LLMConfig['provider'],
       baseUrl: preset.baseUrl || prev.baseUrl,
       model: preset.model || '',
+      models: newModels,
     }));
+    setModelsText(newModels.join(', '));
     setHasChanges(true);
     setTestResult(null);
   };
@@ -70,6 +69,18 @@ export default function Settings() {
     setConfig(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
     setTestResult(null);
+  };
+
+  const handleModelsChange = (text: string) => {
+    setModelsText(text);
+    setHasChanges(true);
+    // Parse comma-separated models
+    const models = text.split(',').map(m => m.trim()).filter(m => m);
+    setConfig(prev => ({
+      ...prev,
+      models,
+      model: models[0] || prev.model, // Set first model as default
+    }));
   };
 
   const handleHeadersChange = (text: string) => {
@@ -98,6 +109,16 @@ export default function Settings() {
       }
     }
 
+    // Validate models
+    if (!config.models || config.models.length === 0) {
+      toast({
+        title: '保存失败',
+        description: '请至少输入一个模型名称',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     saveLLMConfig(config);
     setHasChanges(false);
     toast({
@@ -112,6 +133,7 @@ export default function Settings() {
     clearLLMConfig();
     setConfig(DEFAULT_LLM_CONFIG);
     setHeadersText('');
+    setModelsText(DEFAULT_LLM_CONFIG.models.join(', '));
     setTestResult(null);
     setHasChanges(false);
     toast({
@@ -145,8 +167,6 @@ export default function Settings() {
       setIsTesting(false);
     }
   };
-
-  const modelPresets = MODEL_PRESETS[config.provider] || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -191,28 +211,15 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2">
-                <Label>模型</Label>
-                {modelPresets.length > 0 ? (
-                  <Select
-                    value={config.model}
-                    onValueChange={(v) => handleChange('model', v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择模型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modelPresets.map(m => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={config.model}
-                    onChange={(e) => handleChange('model', e.target.value)}
-                    placeholder="输入模型名称"
-                  />
-                )}
+                <Label>模型列表</Label>
+                <Input
+                  value={modelsText}
+                  onChange={(e) => handleModelsChange(e.target.value)}
+                  placeholder="gpt-4o-mini, gpt-4o, gpt-4-turbo"
+                />
+                <p className="text-xs text-muted-foreground">
+                  用逗号分隔多个模型名称，第一个为默认模型
+                </p>
               </div>
 
               <div className="space-y-2">
