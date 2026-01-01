@@ -188,18 +188,9 @@ export function LLMOperations({ extractedText, qaHistory, documentName, onSummar
 
   return (
     <div className="space-y-6">
-      {/* Current Config Display & Export */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>当前模型：</span>
-          <span className="rounded-md bg-muted px-2 py-0.5 font-mono">
-            {config.model}
-          </span>
-          <Link to="/settings" className="text-primary hover:underline">
-            修改
-          </Link>
-        </div>
-        {(summary || qaHistory.length > 0) && (
+      {/* Export Button */}
+      {(summary || qaHistory.length > 0) && (
+        <div className="flex justify-end">
           <Button
             variant="outline"
             size="sm"
@@ -209,8 +200,8 @@ export function LLMOperations({ extractedText, qaHistory, documentName, onSummar
             <Download className="h-4 w-4" />
             导出 MD
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {chunkingInfo.needsChunking && (
         <div className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">

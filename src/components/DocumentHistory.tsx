@@ -86,14 +86,18 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                   key={doc.id}
                   className="rounded-lg border border-border bg-background p-3 transition-colors hover:bg-muted/30"
                 >
+                  {/* Document name on separate first line */}
+                  <div className="mb-2">
+                    <p className="font-medium break-words text-base">{doc.filename}</p>
+                  </div>
+                  
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium break-words">{doc.filename}</p>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           <span>{format(new Date(doc.uploadedAt), 'yyyy-MM-dd HH:mm')}</span>
                           <span>{doc.pageCount} 页</span>
                           <span>{doc.textCharCount.toLocaleString()} 字符</span>
@@ -136,9 +140,11 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                             <Sparkles className="h-3.5 w-3.5" />
                             总结
                           </h5>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-6">
-                            {doc.lastSummary}
-                          </p>
+                          <ScrollArea className="max-h-[200px]">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">
+                              {doc.lastSummary}
+                            </p>
+                          </ScrollArea>
                         </div>
                       )}
                       
@@ -148,17 +154,16 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                             <MessageCircle className="h-3.5 w-3.5" />
                             问答记录
                           </h5>
-                          {doc.qaHistory.slice(0, 3).map((qa) => (
-                            <div key={qa.id} className="rounded-md bg-primary/5 border border-primary/20 p-3">
-                              <p className="text-sm font-medium mb-1">Q: {qa.question}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-3">A: {qa.answer}</p>
+                          <ScrollArea className="max-h-[300px]">
+                            <div className="space-y-2 pr-3">
+                              {doc.qaHistory.map((qa) => (
+                                <div key={qa.id} className="rounded-md bg-primary/5 border border-primary/20 p-3">
+                                  <p className="text-sm font-medium mb-1">Q: {qa.question}</p>
+                                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">A: {qa.answer}</p>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                          {doc.qaHistory.length > 3 && (
-                            <p className="text-xs text-muted-foreground text-center">
-                              还有 {doc.qaHistory.length - 3} 条问答记录
-                            </p>
-                          )}
+                          </ScrollArea>
                         </div>
                       )}
                     </div>

@@ -6,12 +6,13 @@ import { TextPreview } from '@/components/TextPreview';
 import { LLMOperations } from '@/components/LLMOperations';
 import { DocumentHistory } from '@/components/DocumentHistory';
 import { MaximizeWrapper } from '@/components/MaximizeWrapper';
+import { ModelSelector } from '@/components/ModelSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { extractTextFromPDF } from '@/lib/pdf-parser';
 import { saveDocument, loadDocuments } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import type { ExtractionProgress, PDFDocument, QARecord } from '@/lib/types';
+import type { ExtractionProgress, PDFDocument, QARecord, LLMConfig } from '@/lib/types';
 
 export default function Workspace() {
   const { toast } = useToast();
@@ -29,6 +30,7 @@ export default function Workspace() {
   const [error, setError] = useState<string | null>(null);
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
   const [qaHistory, setQAHistory] = useState<QARecord[]>([]);
+  const [configVersion, setConfigVersion] = useState(0);
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     setFile(selectedFile);
@@ -48,6 +50,11 @@ export default function Workspace() {
     setProgress({ current: 0, total: 0, status: 'idle' });
     setCurrentDocId(null);
     setQAHistory([]);
+  }, []);
+
+  const handleConfigChange = useCallback((config: LLMConfig) => {
+    // Trigger re-render of LLMOperations with new config
+    setConfigVersion(v => v + 1);
   }, []);
 
   const handleExtract = async () => {
@@ -143,6 +150,11 @@ export default function Workspace() {
           </p>
         </div>
 
+        {/* Model & Language Selector */}
+        <div className="mb-6">
+          <ModelSelector onConfigChange={handleConfigChange} />
+        </div>
+
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Column: Upload & Extract */}
           <div className="space-y-6">
@@ -203,6 +215,7 @@ export default function Workspace() {
           <div>
             {extractedText ? (
               <LLMOperations
+                key={configVersion}
                 extractedText={extractedText}
                 qaHistory={qaHistory}
                 documentName={file?.name}
