@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Clock, MessageCircle, Sparkles, ChevronDown, ChevronUp, Trash2, Maximize2 } from 'lucide-react';
+import { FileText, Clock, MessageCircle, Sparkles, ChevronDown, ChevronUp, Trash2, Maximize2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -53,6 +53,36 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
 
   const refreshDocuments = () => {
     setDocuments(loadDocuments());
+  };
+
+  const downloadMarkdown = (doc: PDFDocument) => {
+    let content = `# ${doc.filename}\n\n`;
+    content += `- **上传时间**: ${format(new Date(doc.uploadedAt), 'yyyy-MM-dd HH:mm')}\n`;
+    content += `- **页数**: ${doc.pageCount}\n`;
+    content += `- **字符数**: ${doc.textCharCount.toLocaleString()}\n\n`;
+
+    if (doc.lastSummary) {
+      content += `## 总结\n\n${doc.lastSummary}\n\n`;
+    }
+
+    if (doc.qaHistory && doc.qaHistory.length > 0) {
+      content += `## 问答记录\n\n`;
+      doc.qaHistory.forEach((qa, index) => {
+        content += `### Q${doc.qaHistory!.length - index}: ${qa.question}\n\n`;
+        content += `**时间**: ${format(new Date(qa.createdAt), 'yyyy-MM-dd HH:mm')}\n\n`;
+        content += `${qa.answer}\n\n---\n\n`;
+      });
+    }
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${doc.filename.replace(/\.pdf$/i, '')}_历史记录.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   if (documents.length === 0) {
@@ -148,6 +178,15 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => downloadMarkdown(doc)}
+                        className="h-8 w-8 p-0"
+                        title="下载 Markdown"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
