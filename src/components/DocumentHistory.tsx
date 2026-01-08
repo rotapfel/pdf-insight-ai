@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Clock, MessageCircle, Sparkles, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { FileText, Clock, MessageCircle, Sparkles, ChevronDown, ChevronUp, Trash2, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +17,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface DocumentHistoryProps {
   onLoadDocument?: (doc: PDFDocument) => void;
@@ -26,6 +32,7 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
   const [documents, setDocuments] = useState<PDFDocument[]>(() => loadDocuments());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedQaIds, setExpandedQaIds] = useState<Set<string>>(new Set());
+  const [maximizedDoc, setMaximizedDoc] = useState<PDFDocument | null>(null);
 
   const toggleQaExpanded = (qaId: string) => {
     setExpandedQaIds(prev => {
@@ -140,18 +147,29 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExpandedId(isExpanded ? null : doc.id)}
-                      className="shrink-0"
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMaximizedDoc(doc)}
+                        className="h-8 w-8 p-0"
+                        title="最大化"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedId(isExpanded ? null : doc.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
                   {isExpanded && (
@@ -217,6 +235,73 @@ export function DocumentHistory({ onLoadDocument }: DocumentHistoryProps) {
           </div>
         </ScrollArea>
       </CardContent>
+
+      {/* Maximized Document Dialog */}
+      <Dialog open={!!maximizedDoc} onOpenChange={(open) => !open && setMaximizedDoc(null)}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              <span className="truncate">{maximizedDoc?.filename}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {maximizedDoc && (
+            <ScrollArea className="flex-1">
+              <div className="space-y-6 pr-4">
+                {/* Document Info */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                  <span>{format(new Date(maximizedDoc.uploadedAt), 'yyyy-MM-dd HH:mm')}</span>
+                  <span>{maximizedDoc.pageCount} 页</span>
+                  <span>{maximizedDoc.textCharCount.toLocaleString()} 字符</span>
+                </div>
+
+                {/* Summary Section */}
+                {maximizedDoc.lastSummary && (
+                  <div className="rounded-lg bg-success/5 border border-success/20 p-4">
+                    <h3 className="text-base font-medium text-success mb-3 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      总结
+                    </h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {maximizedDoc.lastSummary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Q&A Section */}
+                {maximizedDoc.qaHistory && maximizedDoc.qaHistory.length > 0 && (
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+                    <h3 className="text-base font-medium text-primary mb-3 flex items-center gap-2">
+                      <MessageCircle className="h-4 w-4" />
+                      问答记录 ({maximizedDoc.qaHistory.length})
+                    </h3>
+                    <div className="space-y-4">
+                      {maximizedDoc.qaHistory.map((qa, index) => (
+                        <div key={qa.id} className="rounded-md bg-background border border-border p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
+                              Q{maximizedDoc.qaHistory!.length - index}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(qa.createdAt), 'yyyy-MM-dd HH:mm')}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium mb-2">{qa.question}</p>
+                          <div className="pt-2 border-t border-border">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                              {qa.answer}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
