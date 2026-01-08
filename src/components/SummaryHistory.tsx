@@ -71,7 +71,7 @@ export function SummaryHistory() {
                           {format(new Date(record.createdAt), 'yyyy-MM-dd HH:mm')}
                         </span>
                       </div>
-                      <ScrollArea className="max-h-[200px]">
+                      <ScrollArea className="h-[200px]">
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap pr-3">
                           {record.content}
                         </p>
