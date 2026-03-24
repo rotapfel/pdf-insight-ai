@@ -395,7 +395,7 @@ export async function askQuestion(
     { role: 'user', content: `问题：${question}\n\nextractedText:\n${contextText}` },
   ];
   
-  return callOpenAICompatible(config, messages);
+  return callLLM(config, messages);
 }
 
 export async function testConnection(config: LLMConfig): Promise<{ success: boolean; message: string }> {
