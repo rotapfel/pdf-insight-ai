@@ -363,7 +363,7 @@ export async function summarizeText(
       { role: 'user', content: `这是文档的第 ${i + 1}/${chunks.length} 部分，请总结：\n\n${chunks[i]}` },
     ];
     
-    const result = await callOpenAICompatible(config, messages);
+    const result = await callLLM(config, messages);
     chunkSummaries.push(result.content);
   }
   
