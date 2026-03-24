@@ -93,6 +93,174 @@ function selectRelevantChunks(chunks: string[], question: string, maxChunks: num
   return scored.slice(0, maxChunks).map(s => s.chunk);
 }
 
+async function callLLM(
+  config: LLMConfig,
+  messages: { role: string; content: string }[]
+): Promise<LLMResponse> {
+  if (config.provider === 'gemini') {
+    return callGemini(config, messages);
+  }
+  if (config.provider === 'anthropic') {
+    return callAnthropic(config, messages);
+  }
+  return callOpenAICompatible(config, messages);
+}
+
+async function callGemini(
+  config: LLMConfig,
+  messages: { role: string; content: string }[]
+): Promise<LLMResponse> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.timeout * 1000);
+
+  try {
+    const baseUrl = config.baseUrl.replace(/\/$/, '');
+    const endpoint = `${baseUrl}/v1beta/models/${config.model}:generateContent?key=${config.apiKey}`;
+
+    // Convert messages to Gemini format
+    const systemInstruction = messages.find(m => m.role === 'system');
+    const contents = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+    const body: any = {
+      contents,
+      generationConfig: {
+        temperature: config.temperature,
+        maxOutputTokens: config.maxTokens,
+      },
+    };
+
+    if (systemInstruction) {
+      body.systemInstruction = { parts: [{ text: systemInstruction.content }] };
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 400) {
+        throw new Error(`请求参数错误：${errorData.error?.message || '请检查模型名称是否正确'}`);
+      } else if (response.status === 403) {
+        throw new Error('认证失败：请检查 API Key 是否正确');
+      } else if (response.status === 429) {
+        throw new Error('请求过于频繁：已触发速率限制，请稍后重试');
+      } else if (response.status === 404) {
+        throw new Error(`模型不存在：${config.model}，请在设置中选择有效的模型`);
+      }
+      throw new Error(errorData.error?.message || `请求失败 (${response.status})`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!content) {
+      throw new Error('API 返回了空响应');
+    }
+
+    return {
+      content,
+      tokenUsage: data.usageMetadata ? {
+        prompt: data.usageMetadata.promptTokenCount,
+        completion: data.usageMetadata.candidatesTokenCount,
+      } : undefined,
+    };
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`请求超时：超过 ${config.timeout} 秒未响应`);
+    }
+    throw error;
+  }
+}
+
+async function callAnthropic(
+  config: LLMConfig,
+  messages: { role: string; content: string }[]
+): Promise<LLMResponse> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.timeout * 1000);
+
+  try {
+    const baseUrl = config.baseUrl.replace(/\/$/, '');
+    const endpoint = `${baseUrl}/v1/messages`;
+
+    const systemMsg = messages.find(m => m.role === 'system');
+    const chatMessages = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role, content: m.content }));
+
+    const body: any = {
+      model: config.model,
+      max_tokens: config.maxTokens,
+      temperature: config.temperature,
+      messages: chatMessages,
+    };
+
+    if (systemMsg) {
+      body.system = systemMsg.content;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        ...config.headers,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        throw new Error('认证失败：请检查 API Key 是否正确');
+      } else if (response.status === 429) {
+        throw new Error('请求过于频繁：已触发速率限制，请稍后重试');
+      } else if (response.status === 404) {
+        throw new Error(`模型不存在：${config.model}，请在设置中选择有效的模型`);
+      }
+      throw new Error(errorData.error?.message || `请求失败 (${response.status})`);
+    }
+
+    const data = await response.json();
+    const content = data.content?.[0]?.text;
+
+    if (!content) {
+      throw new Error('API 返回了空响应');
+    }
+
+    return {
+      content,
+      tokenUsage: data.usage ? {
+        prompt: data.usage.input_tokens,
+        completion: data.usage.output_tokens,
+      } : undefined,
+    };
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`请求超时：超过 ${config.timeout} 秒未响应`);
+    }
+    throw error;
+  }
+}
+
 async function callOpenAICompatible(
   config: LLMConfig,
   messages: { role: string; content: string }[]
@@ -181,7 +349,7 @@ export async function summarizeText(
       { role: 'user', content: `${LENGTH_INSTRUCTIONS[length]}\n\nextractedText:\n${text}` },
     ];
     
-    return callOpenAICompatible(config, messages);
+    return callLLM(config, messages);
   }
   
   // Multi-chunk summarization
@@ -195,7 +363,7 @@ export async function summarizeText(
       { role: 'user', content: `这是文档的第 ${i + 1}/${chunks.length} 部分，请总结：\n\n${chunks[i]}` },
     ];
     
-    const result = await callOpenAICompatible(config, messages);
+    const result = await callLLM(config, messages);
     chunkSummaries.push(result.content);
   }
   
@@ -205,7 +373,7 @@ export async function summarizeText(
     { role: 'user', content: `${LENGTH_INSTRUCTIONS[length]}\n\n以下是文档各部分的摘要，请合并成一个完整的总结：\n\n${chunkSummaries.join('\n\n---\n\n')}` },
   ];
   
-  return callOpenAICompatible(config, mergeMessages);
+  return callLLM(config, mergeMessages);
 }
 
 export async function askQuestion(
@@ -227,7 +395,7 @@ export async function askQuestion(
     { role: 'user', content: `问题：${question}\n\nextractedText:\n${contextText}` },
   ];
   
-  return callOpenAICompatible(config, messages);
+  return callLLM(config, messages);
 }
 
 export async function testConnection(config: LLMConfig): Promise<{ success: boolean; message: string }> {
@@ -237,7 +405,7 @@ export async function testConnection(config: LLMConfig): Promise<{ success: bool
       { role: 'user', content: 'Say "OK" if you can read this.' },
     ];
     
-    await callOpenAICompatible(
+    await callLLM(
       { ...config, timeout: 15, maxTokens: 10 },
       messages
     );
