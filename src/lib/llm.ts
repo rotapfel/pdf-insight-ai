@@ -349,7 +349,7 @@ export async function summarizeText(
       { role: 'user', content: `${LENGTH_INSTRUCTIONS[length]}\n\nextractedText:\n${text}` },
     ];
     
-    return callOpenAICompatible(config, messages);
+    return callLLM(config, messages);
   }
   
   // Multi-chunk summarization
