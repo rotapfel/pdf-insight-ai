@@ -373,7 +373,7 @@ export async function summarizeText(
     { role: 'user', content: `${LENGTH_INSTRUCTIONS[length]}\n\n以下是文档各部分的摘要，请合并成一个完整的总结：\n\n${chunkSummaries.join('\n\n---\n\n')}` },
   ];
   
-  return callOpenAICompatible(config, mergeMessages);
+  return callLLM(config, mergeMessages);
 }
 
 export async function askQuestion(
