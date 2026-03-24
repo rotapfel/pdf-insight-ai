@@ -405,7 +405,7 @@ export async function testConnection(config: LLMConfig): Promise<{ success: bool
       { role: 'user', content: 'Say "OK" if you can read this.' },
     ];
     
-    await callOpenAICompatible(
+    await callLLM(
       { ...config, timeout: 15, maxTokens: 10 },
       messages
     );
